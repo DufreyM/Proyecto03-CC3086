@@ -1,88 +1,54 @@
+#include "FUNCS.h"  // Asegúrate de tener la declaración correcta
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-// Definición de la estructura de Pac-Man
-typedef struct {
-    int x; // Posición en el eje X
-    int y; // Posición en el eje Y
-    int lives; // Vidas
-    int score; // Puntos
-    char symbol; // ASCII @
-    pthread_mutex_t lock; // Mutex para manejar concurrencia en el acceso a Pac-Man
-} PacMan;
-
-// Inicializar Pac-Man en una posición específica
+// Función para inicializar Pac-Man
 void initPacMan(PacMan *pacman, int startX, int startY) {
-    pacman->x = startX;
-    pacman->y = startY;
-    pacman->lives = 3; 
-    pacman->score = 0;
-    pacman->symbol = '@';
+    pacman-> x = startX;
+    pacman-> y = startY;
+    pacman-> lives = 3;
+    pacman-> score = 0;
+    pacman-> symbol = '@';
+    maze[pacman -> x][pacman -> y] = pacman->symbol;
     pthread_mutex_init(&pacman->lock, NULL);
 }
 
-// Definir límites del laberinto
-#define MAZE_WIDTH 10
-#define MAZE_HEIGHT 10
 
-// Función que verifica si la nueva posición está dentro de los límites
+// Verifica si el movimiento es válido
 int isValidMove(int newX, int newY) {
-    if (newX >= 0 && newX < MAZE_WIDTH && newY >= 0 && newY < MAZE_HEIGHT) {
-        return 1; 
+    // Asegurarse de que los límites del laberinto no se sobrepasen
+    if (newX >= 0 && newX < 11 && newY >= 0 && newY < 31) {
+        return (maze[newX][newY] != '#');  // Verificar que no sea una pared
     }
-    return 0; //Si ya llego al tope del laberinto
+    return 0;  // Movimiento inválido
 }
 
-// Función para mover a Pac-Man según la entrada del jugador
+// Mueve a Pac-Man según la entrada
 void pacManMovement(PacMan *pacman, char direction) {
-    pthread_mutex_lock(&pacman->lock); // Bloquear el acceso a Pac-Man
+    pthread_mutex_lock(&pacman->lock);
 
     int newX = pacman->x;
     int newY = pacman->y;
 
-    //Switch con la dirección
     switch (direction) {
-        case 'w': //arriba
-            newY++;
-            break;
-        case 's': //abajo
-            newY--;
-            break;
-        case 'a': //izquierda
-            newX--;
-            break;
-        case 'd': //derecha
-            newX++;
-            break;
-        default:
-            printf("Entrada no válida.\n");
-            break;
+        case 'w': newX--; break;  // Arriba
+        case 's': newX++; break;  // Abajo
+        case 'a': newY--; break;  // Izquierda
+        case 'd': newY++; break;  // Derecha
+        default: 
+            printf("Entrada no válida.\n"); 
+            pthread_mutex_unlock(&pacman->lock);
+            return;
     }
 
-    // Verificar si el movimiento es válido
     if (isValidMove(newX, newY)) {
-        pacman->x = newX;
-        pacman->y = newY;
-        printf("Pac-Man se ha movido a la posición (%d, %d)\n", pacman->x, pacman->y);
-    } else {
-        printf("Movimiento no permitido, fuera de los límites del laberinto.\n");
+        // Actualizar posición de Pac-Man en el laberinto
+        maze[pacman->x][pacman->y] = ' ';  // Borra la posición anterior
+        pacman-> x = newX;
+        pacman-> y = newY;
+        maze[pacman->x][pacman->y] = pacman->symbol;  // Coloca a Pac-Man en la nueva posición
     }
 
-    pthread_mutex_unlock(&pacman->lock); 
-}
-
-int main() {
-    PacMan pacman;
-    initPacMan(&pacman, 5, 5); //Pacman en el centro
-
-    char input;
-    while (pacman.lives > 0) {
-        printf("Ingrese la dirección de movimiento (w: arriba, s: abajo, a: izquierda, d: derecha): ");
-        scanf(" %c", &input);
-        pacManMovement(&pacman, input);
-
-    }
-    pthread_mutex_destroy(&pacman.lock);
-    return 0;
+    pthread_mutex_unlock(&pacman->lock);
 }
