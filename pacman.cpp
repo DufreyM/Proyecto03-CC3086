@@ -32,7 +32,7 @@ void pacManMovement(PacMan *pacman, char direction) {
     switch (direction) {
         case 'w': newX--; break;    // Arriba
         case 's': newX++; break;    // Abajo
-        case 'a': newY--; break;    // Izquier
+        case 'a': newY--; break;    // Izquierda
         case 'd': newY++; break;    // Derecha
         default:
             printf("Entrada no válida.\n");
