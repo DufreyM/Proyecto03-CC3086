@@ -1,20 +1,34 @@
-#include "FUNCS.h"  // Incluye las declaraciones
-#include <pthread.h>
+#include "FUNCS.h"
 #include <stdio.h>
-#include <stdlib.h>
 
-int main() {
-    PacMan pacman;
-    initPacMan(&pacman, 1, 1); // Inicializamos a Pac-Man en una posición válida
+// Primer laberinto creado.
+char maze[11][31] = {
+    "##############################",
+    "#............##............###",
+    "#.####.#####.##.#####.####..##",
+    "#.#  #.#   #.##.#   #.#  #..##",
+    "#.#  #.#   #.##.#   #.#  #..##",
+    "#.####.#####.##.#####.####..##",
+    "#..........................###",
+    "#.####.##.########.##.####..##",
+    "#.####.##.########.##.####..##",
+    "#............##............###",
+    "##############################"
+};
 
-    char input;
-    while (pacman.lives > 0) {
-        printMaze();
-        printf("Ingrese la dirección de movimiento (w: arriba, s: abajo, a: izquierda, d: derecha): ");
-        scanf(" %c", &input);
-        pacManMovement(&pacman, input);
+pthread_mutex_t mazeLock = PTHREAD_MUTEX_INITIALIZER;
+
+// Función para mostrar el laberinto.
+void printMaze(PacMan *pacman) {
+    pthread_mutex_lock(&mazeLock);
+
+    for (int i = 0; i < 11; i++) {
+        printf("%s\n", maze[i]);
     }
 
-    pthread_mutex_destroy(&pacman.lock); // Destruye el mutex al final
-    return 0;
+    if (pacman != NULL) {
+        printf("Score: %d\n", pacman->score);
+    }
+
+    pthread_mutex_unlock(&mazeLock);
 }
