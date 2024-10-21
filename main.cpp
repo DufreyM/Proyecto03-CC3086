@@ -20,15 +20,20 @@ int showMenu() {
 // Función del hilo para Pac-Man
 void* pacmanThread(void* arg) {
     PacMan *pacman = (PacMan*) arg;
-    char input;
+    int input;
     
     while (pacman->lives > 0) {
-        printf("Jugador 1 - Ingrese la dirección de movimiento (w: arriba, s: abajo, a: izquierda, d: derecha): ");
-        scanf(" %c", &input);
+        input = getch();  // Capturar la entrada sin esperar "Enter"
         
-        pacManMovement(pacman, input);
-        printf("\n");
+        switch (input) {
+            case 'w': case 's': case 'a': case 'd':
+                pacManMovement(pacman, input);
+                break;
+            default:
+                break;
+        }
         printMaze(pacman);
+        usleep(100000);  // Para evitar sobrecargar la CPU
     }
 
     return NULL;
@@ -41,7 +46,6 @@ void* ghostThreadAI(void* arg) {
     
     while (ghost->lives > 0) {
         ghostMovement(ghost, pacman);  // Movimiento automático del fantasma
-        printf("\n");
         printMaze(NULL);
         sleep(1);  // El fantasma se mueve cada 1 segundo
     }
@@ -52,12 +56,18 @@ void* ghostThreadAI(void* arg) {
 // Función del hilo para el fantasma controlado por el jugador 2
 void* ghostThreadPlayer(void* arg) {
     Ghost *ghost = (Ghost*) arg;
-    char input;
+    int input;
 
     while (ghost->lives > 0) {
-        printf("Jugador 2 - Ingrese la dirección de movimiento del fantasma (i: arriba, k: abajo, j: izquierda, l: derecha): ");
-        scanf(" %c", &input);
-        
+        // Limpiar la línea anterior antes de mostrar la nueva entrada
+        pthread_mutex_lock(&mazeLock);
+        mvprintw(13, 0, "Jugador 2 - Ingrese la dirección de movimiento del fantasma (i: arriba, k: abajo, j: izquierda, l: derecha): ");
+        refresh();
+        pthread_mutex_unlock(&mazeLock);
+
+        // Capturar entrada del jugador 2 sin necesidad de presionar Enter
+        input = getch();
+
         pthread_mutex_lock(&mazeLock);
 
         int newX = ghost->x;
@@ -69,7 +79,8 @@ void* ghostThreadPlayer(void* arg) {
             case 'j': newY--; break;    // Izquierda
             case 'l': newY++; break;    // Derecha
             default:
-                printf("Entrada no válida.\n");
+                mvprintw(14, 0, "Entrada no válida.");
+                refresh();
                 pthread_mutex_unlock(&mazeLock);
                 continue;
         }
@@ -89,46 +100,36 @@ void* ghostThreadPlayer(void* arg) {
     return NULL;
 }
 
+
 int main() {
-    srand(time(NULL));  // Inicializar la semilla para rand()
+    initscr();  // Iniciar ncurses
+    noecho();   // No mostrar las teclas presionadas
+    curs_set(FALSE);  // Ocultar el cursor
+
+    srand(time(NULL));
 
     PacMan pacman;
     Ghost ghost1;
     
-    initPacMan(&pacman, 1, 1);  // Inicializar Pac-Man en una posición válida
-    initGhost(&ghost1, 1, 25);  // Inicializar fantasma en una posición válida
+    initPacMan(&pacman, 1, 1);  // Inicializar Pac-Man
+    initGhost(&ghost1, 1, 25);  // Inicializar fantasma
 
     printMaze(&pacman);
 
-    int choice = showMenu();  // Mostrar menú y seleccionar modo de juego
-
     pthread_t pacman_tid, ghost_tid;
 
-    if (choice == 1) {
-        // Modo de un jugador: Pac-Man vs IA Fantasma
-        printf("Modo de juego: Un jugador.\n");
-        
-        pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
-        void *args[] = {&ghost1, &pacman};  // Pasar ambos punteros a la IA
-        pthread_create(&ghost_tid, NULL, ghostThreadAI, args);
-        
-    } else if (choice == 2) {
-        // Modo de dos jugadores: Pac-Man controlado por Jugador 1, Fantasma controlado por Jugador 2
-        printf("Modo de juego: Dos jugadores.\n");
-
-        pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
-        pthread_create(&ghost_tid, NULL, ghostThreadPlayer, &ghost1);  // Fantasma controlado por Jugador 2
-    } else {
-        printf("Opción no válida. Saliendo...\n");
-        exit(1);
-    }
+    pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
+    void *args[] = {&ghost1, &pacman};
+    pthread_create(&ghost_tid, NULL, ghostThreadAI, args);
 
     pthread_join(pacman_tid, NULL);
     pthread_join(ghost_tid, NULL);
 
-    pthread_mutex_destroy(&mazeLock);  // Destruir mutex principal
-    pthread_mutex_destroy(&pacman.lock);  // Destruir mutex de PacMan
-    pthread_mutex_destroy(&ghost1.lock);  // Destruir mutex del fantasma
+    endwin();  // Finalizar ncurses
+
+    pthread_mutex_destroy(&mazeLock);
+    pthread_mutex_destroy(&pacman.lock);
+    pthread_mutex_destroy(&ghost1.lock);
 
     return 0;
 }

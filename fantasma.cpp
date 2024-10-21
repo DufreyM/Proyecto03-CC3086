@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <ncurses.h>
 
 void initGhost(Ghost *ghost, int startX, int startY) {
     ghost->x = startX;
@@ -33,10 +35,8 @@ void ghostMovement(Ghost *ghost, PacMan *pacman) {
         int newY = possibleMoves[i][1];
 
         if (isValidMove(newX, newY)) {
-            // Calcular la distancia de la posición actual del fantasma a Pac-Man
             int distance = abs(newX - pacman->x) + abs(newY - pacman->y);
 
-            // Si esta nueva posición nos acerca más a Pac-Man, la seleccionamos
             if (distance < minDistance) {
                 bestX = newX;
                 bestY = newY;
@@ -45,12 +45,11 @@ void ghostMovement(Ghost *ghost, PacMan *pacman) {
         }
     }
 
-    // Actualizar la posición del fantasma si encontró un mejor movimiento
-    maze[ghost->x][ghost->y] = ghost->prevChar;  // Restaurar el carácter anterior en la posición anterior del fantasma
+    maze[ghost->x][ghost->y] = ghost->prevChar;  // Restaurar el carácter anterior
     ghost->x = bestX;
     ghost->y = bestY;
     ghost->prevChar = maze[bestX][bestY];  // Guardar lo que había en la nueva posición
-    maze[ghost->x][ghost->y] = ghost->symbol;  // Colocar al fantasma en la nueva posición
+    maze[ghost->x][ghost->y] = ghost->symbol;  // Colocar al fantasma
 
     pthread_mutex_unlock(&mazeLock);
 }
