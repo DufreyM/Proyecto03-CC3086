@@ -32,4 +32,5 @@ void pacManMovement(PacMan *pacman, char direction);
 extern char maze[11][31]; // Declaración del laberinto como variable externa
 void printMaze(PacMan *pacman);
 void ghostMovement(Ghost *ghost, PacMan *pacman);
+int showMenu();
 #endif
