@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h> 
-#include <n.curses>
+#include <ncurses.h>
 
 
 // Función para mostrar el menú y elegir el modo de juego
