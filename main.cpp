@@ -22,9 +22,11 @@ void* pacmanThread(void* arg) {
 }
 
 void* ghostThread(void* arg) {
-    Ghost *ghost = (Ghost*) arg;
+    Ghost *ghost = ((Ghost*)(((void**)arg)[0]));
+    PacMan *pacman = ((PacMan*)(((void**)arg)[1]));
+    
     while (ghost->lives > 0) {
-        ghostMovement(ghost);
+        ghostMovement(ghost, pacman);  // Ahora se pasa Pac-Man como parámetro
         printf("\n");
         printMaze(NULL);
         sleep(1);
@@ -46,8 +48,10 @@ int main() {
 
     pthread_t pacman_tid, ghost_tid;
 
+    // Crear hilos para Pac-Man y el fantasma, ahora pasamos ambos punteros
     pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
-    pthread_create(&ghost_tid, NULL, ghostThread, &ghost1);
+    void *args[] = {&ghost1, &pacman};  // Pasar ambos punteros
+    pthread_create(&ghost_tid, NULL, ghostThread, args);
 
     pthread_join(pacman_tid, NULL);
     pthread_join(ghost_tid, NULL);
