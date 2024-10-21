@@ -1,134 +1,145 @@
-#include "FUNCS.h" // Incluye las declaraciones
+// main.cpp
+#include <iostream>
+#include <cstdlib>
+#include <vector>
+#include <ncurses.h>  // ncurses para manejo de pantalla y teclado
+#include <Map.h>
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <time.h> 
+#include <random>
+
+using namespace std;
+
+pthread_mutex_t gameMutex;
+pthread_cond_t gameCondition;
+
+bool gameRunning = true;  // Controla el ciclo del juego
+vector<vector<char>> mapa = {
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '-', '-', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', ' ', ' ', ' ', ' ', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', ' ', ' ', ' ', ' ', ' ', '.', ' ', ' ', ' ', '\xDB', '\xDB', '1', '2', '3', '4', '\xDB', '\xDB', ' ', ' ', ' ', '.', ' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', ' ', ' ', ' ', ' ', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {' ', ' ', ' ', ' ', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', ' ', ' ', ' ', ' '},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', ' ', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '@', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB', '.', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '\xDB', '\xDB'},
+    {'\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB', '\xDB'}
+};
+Map gameMap = *(new Map(mapa));
 
 
-// Función para mostrar el menú y elegir el modo de juego
-int showMenu() {
-    int choice;
-    printf("Seleccione el modo de juego:\n");
-    printf("1. Un jugador (Pac-Man vs IA Fantasma)\n");
-    printf("2. Dos jugadores (Jugador 1 controla Pac-Man, Jugador 2 controla Fantasma)\n");
-    printf("Ingrese su opción (1 o 2): ");
-    scanf("%d", &choice);
-    return choice;
+void initializeNcurses() {
+    initscr();              // Inicializa ncurses
+    noecho();               // No mostrar la entrada del usuario
+    cbreak();               // Desactiva el buffer de línea
+    keypad(stdscr, TRUE);   // Habilita las teclas especiales (como las flechas)
+    curs_set(0);            // Oculta el cursor
 }
 
-// Función del hilo para Pac-Man
-void* pacmanThread(void* arg) {
-    PacMan *pacman = (PacMan*) arg;
-    char input;
-    
-    while (pacman->lives > 0) {
-        printf("Jugador 1 - Ingrese la dirección de movimiento (w: arriba, s: abajo, a: izquierda, d: derecha): ");
-        scanf(" %c", &input);
-        
-        pacManMovement(pacman, input);
-        printf("\n");
-        printMaze(pacman);
-    }
+void* pacManThread(void* arg) {
+    while (gameRunning) {
+        int input = getch();  // Leer entrada del usuario
 
-    return NULL;
-}
-
-// Función del hilo para el fantasma controlado por IA
-void* ghostThreadAI(void* arg) {
-    Ghost *ghost = ((Ghost*)(((void**)arg)[0]));
-    PacMan *pacman = ((PacMan*)(((void**)arg)[1]));
-    
-    while (ghost->lives > 0) {
-        ghostMovement(ghost, pacman);  // Movimiento automático del fantasma
-        printf("\n");
-        printMaze(NULL);
-        sleep(1);  // El fantasma se mueve cada 1 segundo
-    }
-
-    return NULL;
-}
-
-// Función del hilo para el fantasma controlado por el jugador 2
-void* ghostThreadPlayer(void* arg) {
-    Ghost *ghost = (Ghost*) arg;
-    char input;
-
-    while (ghost->lives > 0) {
-        printf("Jugador 2 - Ingrese la dirección de movimiento del fantasma (i: arriba, k: abajo, j: izquierda, l: derecha): ");
-        scanf(" %c", &input);
-        
-        pthread_mutex_lock(&mazeLock);
-
-        int newX = ghost->x;
-        int newY = ghost->y;
-
+        pthread_mutex_lock(&gameMutex);
         switch (input) {
-            case 'i': newX--; break;    // Arriba
-            case 'k': newX++; break;    // Abajo
-            case 'j': newY--; break;    // Izquierda
-            case 'l': newY++; break;    // Derecha
-            default:
-                printf("Entrada no válida.\n");
-                pthread_mutex_unlock(&mazeLock);
-                continue;
+            case KEY_UP: gameMap.movePacman(-1,0); break;
+            case KEY_DOWN: gameMap.movePacman(1,0); break;
+            case KEY_LEFT: gameMap.movePacman(0,-1); break;
+            case KEY_RIGHT: gameMap.movePacman(0,1); break;
+            case 'q': gameRunning = false; break;
         }
 
-        if (isValidMove(newX, newY)) {
-            maze[ghost->x][ghost->y] = ghost->prevChar;  // Restaurar carácter anterior
-            ghost->x = newX;
-            ghost->y = newY;
-            ghost->prevChar = maze[newX][newY];  // Guardar lo que había en la nueva posición
-            maze[ghost->x][ghost->y] = ghost->symbol;  // Colocar al fantasma
-        }
+        pthread_mutex_unlock(&gameMutex);
 
-        pthread_mutex_unlock(&mazeLock);
-        printMaze(NULL);  // Mostrar laberinto después del movimiento
+        usleep(100000);  // Controla la velocidad del movimiento
     }
 
-    return NULL;
+    return nullptr;
+}
+
+void* blinkyThread(void* arg) {
+    random_device rd;  // Semilla aleatoria del sistema
+    mt19937 gen(rd()); // Mersenne Twister como generador
+
+    uniform_int_distribution<int> distrib(-1, 1);
+
+    while (gameRunning) {
+        pthread_mutex_lock(&gameMutex);
+
+        gameMap.moveBlinky(distrib(gen), distrib(gen));
+
+        pthread_mutex_unlock(&gameMutex);
+
+        usleep(1000000);  // Controla la velocidad del movimiento
+    }
+
+    return nullptr;
+}
+
+void* gameThread(void* arg) {
+    while (gameRunning) {
+
+        pthread_mutex_lock(&gameMutex);
+
+        if(gameMap.getPacMan().getLives() == 0) {
+            gameMap.gameOver();
+            int input = getch();  // Leer entrada del usuario
+            if (input == 'e') {
+                gameRunning = false;
+            }
+        }
+
+        pthread_mutex_unlock(&gameMutex);
+    }
+
+    return nullptr;
 }
 
 int main() {
-    srand(time(NULL));  // Inicializar la semilla para rand()
+    // Inicialización de ncurses
+    initializeNcurses();
 
-    PacMan pacman;
-    Ghost ghost1;
-    
-    initPacMan(&pacman, 1, 1);  // Inicializar Pac-Man en una posición válida
-    initGhost(&ghost1, 1, 25);  // Inicializar fantasma en una posición válida
+    pthread_t thread1, thread2, thread3;
+    pthread_mutex_init(&gameMutex, NULL);
+    pthread_cond_init(&gameCondition, NULL);
 
-    printMaze(&pacman);
+    gameMap.mostrarMapa();  // Muestra el mapa inicial
 
-    int choice = showMenu();  // Mostrar menú y seleccionar modo de juego
+    pthread_create(&thread1, NULL, pacManThread, NULL);
+    pthread_create(&thread2, NULL, blinkyThread, NULL);
+    pthread_create(&thread3, NULL, gameThread, NULL);
 
-    pthread_t pacman_tid, ghost_tid;
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+    pthread_join(thread3, NULL);
 
-    if (choice == 1) {
-        // Modo de un jugador: Pac-Man vs IA Fantasma
-        printf("Modo de juego: Un jugador.\n");
-        
-        pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
-        void *args[] = {&ghost1, &pacman};  // Pasar ambos punteros a la IA
-        pthread_create(&ghost_tid, NULL, ghostThreadAI, args);
-        
-    } else if (choice == 2) {
-        // Modo de dos jugadores: Pac-Man controlado por Jugador 1, Fantasma controlado por Jugador 2
-        printf("Modo de juego: Dos jugadores.\n");
+    clear();
 
-        pthread_create(&pacman_tid, NULL, pacmanThread, &pacman);
-        pthread_create(&ghost_tid, NULL, ghostThreadPlayer, &ghost1);  // Fantasma controlado por Jugador 2
-    } else {
-        printf("Opción no válida. Saliendo...\n");
-        exit(1);
-    }
+    pthread_mutex_destroy(&gameMutex); // Destruir el mutex
 
-    pthread_join(pacman_tid, NULL);
-    pthread_join(ghost_tid, NULL);
-
-    pthread_mutex_destroy(&mazeLock);  // Destruir mutex principal
-    pthread_mutex_destroy(&pacman.lock);  // Destruir mutex de PacMan
-    pthread_mutex_destroy(&ghost1.lock);  // Destruir mutex del fantasma
-
+    // Finaliza ncurses
+    endwin();
     return 0;
 }
