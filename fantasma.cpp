@@ -15,11 +15,10 @@ void initGhost(Ghost *ghost, int startX, int startY) {
 void ghostMovement(Ghost *ghost) {
     pthread_mutex_lock(&mazeLock);
 
-    int movement = rand() % 4;  // rand() se puede usar directamente, no hace falta srand aquí.
+    int movement = rand() % 4;
     int newX = ghost->x;
     int newY = ghost->y;
 
-    // En esta sección, el fantasma buscará hacia dónde moverse.
     switch (movement) {
         case 0: newX--; break;
         case 1: newX++; break;
@@ -28,14 +27,18 @@ void ghostMovement(Ghost *ghost) {
     }
 
     if (isValidMove(newX, newY)) {
-        maze[ghost->x][ghost->y] = ghost->prevChar;
-
-        ghost->x = newX;
-        ghost->y = newY;
-
-        ghost->prevChar = maze[newX][newY];
-
-        maze[ghost->x][ghost->y] = ghost->symbol;
+        // Verifica si el fantasma colisiona con Pac-Man
+        if (maze[newX][newY] == '@') {  // Supone que Pac-Man tiene el símbolo '@'
+            printf("¡El fantasma ha atrapado a Pac-Man!\n");
+            pthread_mutex_unlock(&mazeLock);
+            return;
+        } else {
+            maze[ghost->x][ghost->y] = ghost->prevChar;  // Deja lo que estaba antes
+            ghost->x = newX;
+            ghost->y = newY;
+            ghost->prevChar = maze[newX][newY];
+            maze[ghost->x][ghost->y] = ghost->symbol;
+        }
     }
 
     pthread_mutex_unlock(&mazeLock);

@@ -17,12 +17,11 @@ void initPacMan(PacMan *pacman, int startX, int startY) {
 int isValidMove(int newX, int newY) {
     // Asegurarse que los límites del laberinto no se sobrepasen.
     if (newX >= 0 && newX < 11 && newY >= 0 && newY < 31) {
-        return (maze[newX][newY] != '#');
+        return (maze[newX][newY] != '\xDB');
     }
     return 0;
 }
 
-// Según la entrada, pacman se mueve.
 void pacManMovement(PacMan *pacman, char direction) {
     pthread_mutex_lock(&pacman->lock);
 
@@ -43,18 +42,33 @@ void pacManMovement(PacMan *pacman, char direction) {
     pthread_mutex_lock(&mazeLock);
 
     if (isValidMove(newX, newY)) {
-        // Actualizar posición de Pac-Man en el laberinto
-        if (maze[newX][newY] == '.') { // Lógica de puntaje.
-            pacman->score++;
-        }
+        // Verifica si Pac-Man colisiona con un fantasma
+        if (maze[newX][newY] == '$') {  // Supone que el fantasma tiene el símbolo '$'
+            pacman->lives--;  // Restar una vida a Pac-Man
+            printf("¡Pac-Man ha sido atrapado por un fantasma! Vidas restantes: %d\n", pacman->lives);
 
-        maze[pacman->x][pacman->y] = ' '; // "come" los puntos"
-        pacman->x = newX;
-        pacman->y = newY;
-        maze[pacman->x][pacman->y] = pacman->symbol;
+            if (pacman->lives == 0) {
+                printf("¡Pac-Man ha perdido todas sus vidas! Fin del juego.\n");
+                exit(0);  // Termina el juego
+            }
+        } else {
+            // Actualizar posición de Pac-Man en el laberinto
+            if (maze[newX][newY] == '.') {
+                pacman->score++;
+            }
+
+            maze[pacman->x][pacman->y] = ' ';  // Deja espacio vacío
+            pacman->x = newX;
+            pacman->y = newY;
+            maze[pacman->x][pacman->y] = pacman->symbol;
+        }
     }
 
-    // Desbloquear los mutex.
+    if (pacman->score == 115) {
+        printf("¡Pac-Man ha recogido todas las píldoras! ¡Victoria!\n");
+        exit(0);  // Termina el juego
+    }
+
     pthread_mutex_unlock(&mazeLock);
     pthread_mutex_unlock(&pacman->lock);
 }
