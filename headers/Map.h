@@ -4,9 +4,8 @@
 
 #include <vector>
 #include <iostream>
-#include "Position.h"
-#include "PacMan.h"
-#include "Ghost.h"
+#include <PacMan.h>
+#include <Ghost.h>
 
 class Map {
 private:
@@ -20,6 +19,8 @@ private:
     bool isWall(const Position& pos) const { return grid[pos.x][pos.y] == '\xDB'; }
 
     bool isGhost(const Position& pos) const;
+    
+    bool isPacman(const Position& pos) const { return grid[pos.x][pos.y] == '@'; }
 
     bool isPellet(const Position& pos) const { return grid[pos.x][pos.y] == '.'; }
 
@@ -27,18 +28,34 @@ private:
 
     bool isClearCell(const Position& pos) const { return grid[pos.x][pos.y] == ' '; }
 
+    bool isFrightenedGhost(const Position& pos) const { return grid[pos.x][pos.y] == '$'; }
+
     void clearCell(const Position& pos) { grid[pos.x][pos.y] = ' '; }
 
     void setCell(const Position& pos, char character) { grid[pos.x][pos.y] = character; }
 
+    Ghost& fantasmaFactory(Position& pos, int x);
+
+    int manhattanDistance(const Position &a, const Position &b) { return abs(a.x - b.x) + abs(a.y - b.y); }
+
 public:
-    Map(std::vector<std::vector<char>> layout): grid(layout), pacman(PacMan()), blinky(Ghost(14,13)), pinky(Ghost(14,14)), inky(Ghost(14,15)), clyde(Ghost(14,16)) {}
+    Map(std::vector<std::vector<char>> layout): grid(layout), pacman(PacMan()), blinky(Ghost(14,12, '1')), pinky(Ghost(14,13, '2')), inky(Ghost(14,14, '3')), clyde(Ghost(14,15, '4')) {}
 
     void mostrarMapa() const;
+
+    void newLevel(int level) const;
     
     void movePacman(int x, int y);
 
-    void moveBlinky(int x, int y);
+    void moveGhostChase(int numGhost);
+
+    void moveBlinky();
+
+    void movePinky();
+
+    void moveInky();
+
+    void moveClyde();
 
     PacMan getPacMan() { return pacman; }
 
